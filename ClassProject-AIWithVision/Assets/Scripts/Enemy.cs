@@ -97,7 +97,13 @@ public class Enemy : MonoBehaviour {
         if(angle<(fieldOfView/2)) {
             return true;
         }
-        return false;
+        else
+        {
+            ChangeToPatrolling();
+            return false;
+        }
+        
+        
         // Or, if you are Tori:
         // return (Vector3.Angle((collider.transform.position - transform.position), transform.forward) < (fieldOfView / 2)) ? true : false;
     }
