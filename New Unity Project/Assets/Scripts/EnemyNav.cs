@@ -1,10 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
-public class EnemyAI : MonoBehaviour
+public class EnemyNav : MonoBehaviour
 {
-
+    public NavMeshAgent enemyAgent;
     [SerializeField]
     private EnemyAIStates state = EnemyAIStates.Patrolling;
     static private List<GameObject> patrolPoints = null;
@@ -21,10 +22,11 @@ public class EnemyAI : MonoBehaviour
 
     protected float fieldOfView = 45.0f;
     protected float viewDistance = 6.0f;
-
+    [SerializeField]
     private float timeStamp;
-    public bool locker;
-
+    public float timeLimit;
+    private bool locker;
+    private Vector3 target;
     void Start()
     {
         if (patrolPoints == null)
@@ -62,9 +64,10 @@ public class EnemyAI : MonoBehaviour
 
     protected float MoveTowardsTarget(float speed, Vector3 target)
     {
+        enemyAgent.SetDestination(target);
         transform.position = Vector3.MoveTowards(transform.position, target, speed * Time.deltaTime);
-        Vector3 targetDirection = target - transform.position;
-        transform.rotation = Quaternion.LookRotation(targetDirection);
+        //Vector3 targetDirection = target - transform.position;
+        //transform.rotation = Quaternion.LookRotation(targetDirection);
         return Vector3.Distance(transform.position, target);
     }
 
@@ -94,47 +97,41 @@ public class EnemyAI : MonoBehaviour
 
     void OnTriggerEnter(Collider collider)
     {
-        if (CanSee(collider))
+        if (CanSee(collider) && collider.gameObject.tag != "wall")
         {
             ChangeToChasing(collider.gameObject);
-        }
-        if (!CanSee(collider) && locker == false)
-        {
-            locker = true;
-            ChangeToPatrolling();
-            timeStamp = Time.deltaTime;
-        }
-        if (locker == true && timeStamp >= timeStamp + 10f)
-        {
-            ChangeToPatrolling();
             locker = false;
-            
-        }
-    }
-
-    void OnTriggerStay(Collider collider)
-    {
-        if (CanSee(collider))
-        {
-            ChangeToChasing(collider.gameObject);
-        }
-        if (!CanSee(collider) && locker == false)
-        {
-            locker = true;
-            ChangeToPatrolling();
-            timeStamp = Time.deltaTime;
-        }
-        if (locker == true && timeStamp >= timeStamp + 10f)
-        {
-            ChangeToPatrolling();
-            locker = false;
+            timeLimit -= 1000f;
         }
         
+    }
+
+    void OnTriggerStay(Collider collider) 
+    {
+        if (CanSee(collider) && collider.gameObject.tag != "wall")
+        {
+            ChangeToChasing(collider.gameObject);
+            locker = false;
+        }
+        if (!CanSee(collider) && locker == false)
+        {
+            locker = true;
+            timeStamp = Time.time;
+            timeLimit = timeStamp + 5f;
+            
+        }
+        if(timeLimit <= Time.time)
+        {
+            ChangeToPatrolling();
+            timeLimit -= 1000f;
+
+        }
     }
 
     void OnTriggerExit(Collider collider)
     {
         ChangeToPatrolling();
+        locker = false;
     }
 
     protected bool CanSee(Collider collider)
